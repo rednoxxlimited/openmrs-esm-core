@@ -7,27 +7,16 @@ RUN corepack enable
 
 WORKDIR /app
 
-# Copy package manager configuration
-COPY package.json yarn.lock ./
-COPY .yarnrc.yml ./
-COPY .yarn ./.yarn
-
-# Copy workspace package.json files for dependency resolution
-COPY packages/apps/*/package.json ./packages/apps/
-COPY packages/framework/*/package.json ./packages/framework/
-COPY packages/shell/*/package.json ./packages/shell/
-COPY packages/tooling/*/package.json ./packages/tooling/
+# Copy the entire repository first (needed for workspace resolution)
+COPY . .
 
 # Install dependencies
 RUN yarn install --immutable
 
-# Copy all source code
-COPY . .
-
 # Build all packages
 RUN yarn build
 
-# Production stage - use the OpenMRS frontend base image approach
+# Production stage
 FROM nginx:alpine
 
 # Copy the built app shell
