@@ -2,22 +2,35 @@
 
 FROM node:18-alpine AS builder
 
+# Enable Corepack for Yarn 4 support
+RUN corepack enable
+
 WORKDIR /app
 
-# Copy package files
+# Copy package manager configuration
 COPY package.json yarn.lock ./
-COPY packages ./packages
+COPY .yarnrc.yml ./
+COPY .yarn ./.yarn
+
+# Copy workspace package.json files for dependency resolution
+COPY packages/apps/*/package.json ./packages/apps/
+COPY packages/framework/*/package.json ./packages/framework/
+COPY packages/shell/*/package.json ./packages/shell/
+COPY packages/tooling/*/package.json ./packages/tooling/
 
 # Install dependencies
-RUN yarn install --frozen-lockfile
+RUN yarn install --immutable
 
-# Build the application
+# Copy all source code
+COPY . .
+
+# Build all packages
 RUN yarn build
 
-# Production stage
+# Production stage - use the OpenMRS frontend base image approach
 FROM nginx:alpine
 
-# Copy built files
+# Copy the built app shell
 COPY --from=builder /app/packages/shell/esm-app-shell/dist /usr/share/nginx/html
 
 # Copy nginx configuration
